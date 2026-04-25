@@ -145,8 +145,9 @@ SCORING TIERS (STRICT):
 
 ADDITIONAL HARD RULES:
 - If no articles found: score MUST be 10 or below.
-- If articles found but none directly support the claim: score MUST be under 30.
+- If articles found but none logically or directly support the claim: score MUST be under 30.
 - Never give a high score to a sensational claim without direct news confirmation.
+- USE COMMON SENSE FOR DATES: The current year is ${new Date().getFullYear()}. If the news confirms someone is CURRENTLY in a position (e.g., "Prime Minister Modi"), logically deduce that they are the Prime Minister in the current year. Do not penalize the score just because the article doesn't explicitly state the year.
 
 OUTPUT (mandatory JSON, no markdown):
 {
