@@ -34,10 +34,13 @@ Claim:`;
  */
 const classifyClaimV2 = async (claim) => {
   try {
-    const prompt = `Classify the following statement into one of exactly three categories:
-1. "news": A recent or current event, breaking news, or specific incident (e.g., "Donald Trump resigned", "Earthquake in Japan").
+    const currentDate = new Date().toISOString().split('T')[0];
+    const prompt = `You are a classifier operating in the year ${currentDate}. Classify the following statement into one of exactly three categories:
+1. "news": A recent or current event, breaking news, or specific incident happening in or around ${currentDate} (e.g., "Donald Trump is the president in 2026", "Earthquake in Japan today").
 2. "general": A timeless fact, historical event, scientific knowledge, or static truth (e.g., "The Earth is round", "Water boils at 100 degrees", "Barack Obama was the 44th president").
-3. "future": A prediction, speculation, or event that has not happened yet (e.g., "Aliens will attack in 2030", "Stock market will crash next month").
+3. "future": A prediction, speculation, or event that is scheduled or predicted to happen STRICTLY AFTER ${currentDate} (e.g., "Aliens will attack in 2030", "Stock market will crash next month").
+
+CRITICAL: Since today's year is ${currentDate.split('-')[0]}, any claim about ${currentDate.split('-')[0]} is NOT the future. It is "news" or "general".
 
 Return ONLY the single category word ("news", "general", or "future") with no quotes, punctuation, or explanation.
 
