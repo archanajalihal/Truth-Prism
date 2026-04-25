@@ -115,7 +115,7 @@ export default function DashboardPage() {
   useEffect(() => {
     const fetchDashboard = async () => {
       try {
-        const res = await fetch("http://localhost:5000/api/dashboard");
+        const res = await fetch("/api/dashboard");
         if (!res.ok) throw new Error("Failed to fetch dashboard");
         const json = await res.json();
         setData(json);

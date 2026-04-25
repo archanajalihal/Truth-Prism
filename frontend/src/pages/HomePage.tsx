@@ -152,13 +152,13 @@ export default function HomePage() {
         // Image input — send as multipart/form-data
         const formData = new FormData();
         formData.append("file", uploadedFile);
-        res = await fetch("http://localhost:5000/api/analyze-v2", {
+        res = await fetch("/api/analyze-v2", {
           method: "POST",
           body: formData,
         });
       } else {
         // Text input — send as JSON
-        res = await fetch("http://localhost:5000/api/analyze-v2", {
+        res = await fetch("/api/analyze-v2", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ text: text.trim() }),

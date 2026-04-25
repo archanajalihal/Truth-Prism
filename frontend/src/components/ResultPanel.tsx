@@ -33,7 +33,7 @@ const RISK_CONFIG = {
 };
 
 export default function ResultPanel({ result }: Props) {
-  const cfg = RISK_CONFIG[result.risk];
+  const cfg = RISK_CONFIG[result.risk || "Medium"];
 
   return (
     <div className="mt-6 space-y-4 animate-fade-up">
@@ -56,7 +56,7 @@ export default function ResultPanel({ result }: Props) {
 
           {/* SVG circle */}
           <div className="flex-shrink-0 mx-auto sm:mx-0">
-            <ScoreCircle score={result.score} risk={result.risk} />
+            <ScoreCircle score={result.score} risk={result.risk || "Medium"} />
           </div>
 
           {/* Right side */}
@@ -115,7 +115,7 @@ export default function ResultPanel({ result }: Props) {
       </div>
 
       {/* ── Flags ── */}
-      {result.flags.length > 0 && (
+      {result.flags && result.flags.length > 0 && (
         <div className="card p-5 animate-fade-up" style={{ animationDelay: "0.08s" }}>
           <p className="label mb-3">
             🚩 Trigger keywords ({result.flags.length})
@@ -148,7 +148,7 @@ export default function ResultPanel({ result }: Props) {
       )}
 
       {/* ── No flags ── */}
-      {result.flags.length === 0 &&
+      {(!result.flags || result.flags.length === 0) &&
         (!result.datasetMatches || result.datasetMatches.length === 0) && (
           <div className="card p-5 animate-fade-up" style={{ animationDelay: "0.08s" }}>
             <p className="text-sm" style={{ color: "#6B7280" }}>

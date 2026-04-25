@@ -47,6 +47,26 @@ app.use("/api/analyze",    imageRoute);    // Dedicated: POST /api/analyze/image
 app.use("/api/analyze-v2", analyzeRouteV2); // V2: POST /api/analyze-v2
 app.use("/api/dashboard",  dashboardRoute); // GET  /api/dashboard
 
+// ── Serve Frontend (Render Deployment) ───────────────────────────────────────
+const path = require("path");
+const frontendDistPath = path.join(__dirname, "frontend", "dist");
+
+// Serve static assets from the React build
+app.use(express.static(frontendDistPath));
+
+// Catch-all route to serve React's index.html for non-API routes
+app.get("*", (req, res, next) => {
+  if (req.originalUrl.startsWith("/api/")) {
+    return next(); // Fall through to notFoundHandler
+  }
+  res.sendFile(path.join(frontendDistPath, "index.html"), (err) => {
+    if (err) {
+      logger.warn("frontend/dist/index.html not found. Did you run 'npm run build' in the frontend folder?");
+      next(); // fallback if dist is completely missing
+    }
+  });
+});
+
 // ── 404 & Global Error Handlers (must be last) ───────────────────────────────
 app.use(notFoundHandler);
 app.use(globalErrorHandler);
