@@ -5,7 +5,7 @@
  */
 
 const multer = require("multer");
-const { extractClaimV2, analyzeWithLLMV2 } = require("../services/llmServiceV2");
+const { extractClaimV2, classifyClaimV2, analyzeGeneralFactV2, analyzeWithLLMV2 } = require("../services/llmServiceV2");
 const { fetchRelatedArticlesV2 } = require("../services/newsServiceV2");
 const { analyzeImageV2 } = require("../services/imageServiceV2");
 const { saveAnalysis } = require("../utils/analysisStore");
@@ -58,13 +58,31 @@ const analyzeV2 = async (req, res) => {
 
     console.log("[analyzeV2] Extracted claim:", claim);
 
-    // ── STEP 2: Fetch news from BBC / TOI / GNews ────────────────────────────
-    const articles = await fetchRelatedArticlesV2(claim);
-    console.log(`[analyzeV2] Articles fetched: ${articles.length}`);
+    // ── STEP 1.5: Classify claim type ────────────────────────────────────────
+    const claimType = await classifyClaimV2(claim);
+    console.log("[analyzeV2] Claim classified as:", claimType);
 
-    // ── STEP 3: LLM Analysis ─────────────────────────────────────────────────
-    const llmResult = await analyzeWithLLMV2(claim, articles);
-    console.log("[analyzeV2] LLM result:", llmResult);
+    let llmResult;
+    let articles = [];
+
+    if (claimType === "future") {
+      // ── Future Prediction ──────────────────────────────────────────────────
+      llmResult = {
+        score: 30,
+        status: "Uncertain",
+        explanation: "This claim is a prediction about the future. Fact-checking systems can only verify events that have already occurred or established facts. Future events cannot be definitively verified."
+      };
+    } else if (claimType === "general") {
+      // ── General Fact ───────────────────────────────────────────────────────
+      llmResult = await analyzeGeneralFactV2(claim);
+      console.log("[analyzeV2] General fact LLM result:", llmResult);
+    } else {
+      // ── Breaking News (default) ────────────────────────────────────────────
+      articles = await fetchRelatedArticlesV2(claim);
+      console.log(`[analyzeV2] Articles fetched: ${articles.length}`);
+      llmResult = await analyzeWithLLMV2(claim, articles);
+      console.log("[analyzeV2] News LLM result:", llmResult);
+    }
 
     // ── STEP 4: Save to dashboard store & build response ────────────────────
     const risk = llmResult.score <= 20 ? "High" : llmResult.score <= 50 ? "Medium" : "Low";
@@ -79,6 +97,7 @@ const analyzeV2 = async (req, res) => {
       success: true,
       inputType,
       claim,
+      type: claimType,
       score: llmResult.score,
       status: llmResult.status,
       explanation: llmResult.explanation,

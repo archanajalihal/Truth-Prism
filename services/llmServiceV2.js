@@ -28,6 +28,74 @@ Claim:`;
 };
 
 /**
+ * Classifies the type of claim to optimize pipeline routing.
+ * @param {string} claim 
+ * @returns {Promise<"news"|"general"|"future">}
+ */
+const classifyClaimV2 = async (claim) => {
+  try {
+    const prompt = `Classify the following statement into one of exactly three categories:
+1. "news": A recent or current event, breaking news, or specific incident (e.g., "Donald Trump resigned", "Earthquake in Japan").
+2. "general": A timeless fact, historical event, scientific knowledge, or static truth (e.g., "The Earth is round", "Water boils at 100 degrees", "Barack Obama was the 44th president").
+3. "future": A prediction, speculation, or event that has not happened yet (e.g., "Aliens will attack in 2030", "Stock market will crash next month").
+
+Return ONLY the single category word ("news", "general", or "future") with no quotes, punctuation, or explanation.
+
+Statement: "${claim}"
+Category:`;
+    const raw = await generateWithRotation("gemini-2.5-flash", prompt);
+    const category = raw.trim().toLowerCase();
+    if (["news", "general", "future"].includes(category)) return category;
+    return "news"; // default to news if ambiguous
+  } catch (err) {
+    console.warn("[llmServiceV2] classifyClaimV2 failed, defaulting to news:", err.message);
+    return "news";
+  }
+};
+
+/**
+ * Analyzes a general fact using LLM internal knowledge, completely bypassing news APIs.
+ * @param {string} claim
+ * @returns {Promise<{score: number, status: string, explanation: string}>}
+ */
+const analyzeGeneralFactV2 = async (claim) => {
+  try {
+    const prompt = `You are a fact-checking AI. Evaluate the following claim based on established global knowledge, science, or history. Do not assume it is true.
+
+Claim: "${claim}"
+
+SCORING RULES:
+- 0-20: Blatantly false, debunked, or pseudoscientific.
+- 21-50: Uncertain, highly controversial, or a common misconception.
+- 51-100: Established fact, widely accepted truth.
+
+OUTPUT (mandatory JSON, no markdown):
+{
+  "score": <number 0-100>,
+  "status": "<Likely False | Uncertain | Likely True>",
+  "explanation": "<concise explanation based on general knowledge>"
+}`;
+    const rawText = await generateWithRotation("gemini-2.5-flash", prompt);
+    let parsed;
+    try {
+      const cleaned = rawText.replace(/^```json\s*/i, "").replace(/^```\s*/i, "").replace(/\s*```$/i, "").trim();
+      parsed = JSON.parse(cleaned);
+    } catch {
+      parsed = { score: 50, status: "Uncertain", explanation: "Parse error." };
+    }
+    return {
+      score: Math.max(0, Math.min(100, Math.round(parsed.score))),
+      status: parsed.status || "Uncertain",
+      explanation: parsed.explanation || "No explanation provided.",
+    };
+  } catch (err) {
+    console.warn("[llmServiceV2] analyzeGeneralFactV2 failed:", err.message);
+    return { score: 50, status: "Uncertain", explanation: "General fact analysis failed." };
+  }
+};
+
+
+/**
  * Builds the strict evidence-based fact-checking prompt for V2.
  * @param {string} claim
  * @param {Array} articles - [{title, source, description, publishedAt}]
@@ -135,4 +203,4 @@ const analyzeWithLLMV2 = async (claim, articles) => {
   }
 };
 
-module.exports = { extractClaimV2, analyzeWithLLMV2 };
+module.exports = { extractClaimV2, classifyClaimV2, analyzeGeneralFactV2, analyzeWithLLMV2 };
