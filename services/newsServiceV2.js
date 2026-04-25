@@ -28,17 +28,20 @@ const extractKeywords = (text) => {
  */
 const fetchBBC = async (query) => {
   try {
-    const res = await axios.get("https://newsapi.org/v2/everything", {
-      params: {
-        q: query,
-        sources: "bbc-news",
-        language: "en",
-        sortBy: "relevancy",
-        pageSize: 3,
-        apiKey: config.newsApiKey,
-      },
+    // Try top-headlines first (no 24h delay on free tier)
+    let res = await axios.get("https://newsapi.org/v2/top-headlines", {
+      params: { q: query, sources: "bbc-news", language: "en", pageSize: 3, apiKey: config.newsApiKey },
       timeout: 6000,
     });
+    
+    // If no recent headlines found, fallback to everything
+    if (!res.data.articles || res.data.articles.length === 0) {
+      res = await axios.get("https://newsapi.org/v2/everything", {
+        params: { q: query, sources: "bbc-news", language: "en", sortBy: "publishedAt", pageSize: 3, apiKey: config.newsApiKey },
+        timeout: 6000,
+      });
+    }
+
     return (res.data.articles || []).map((a) => ({
       title: a.title || "No title",
       source: "BBC News",
@@ -57,17 +60,18 @@ const fetchBBC = async (query) => {
  */
 const fetchTOI = async (query) => {
   try {
-    const res = await axios.get("https://newsapi.org/v2/everything", {
-      params: {
-        q: query,
-        sources: "the-times-of-india",
-        language: "en",
-        sortBy: "relevancy",
-        pageSize: 3,
-        apiKey: config.newsApiKey,
-      },
+    let res = await axios.get("https://newsapi.org/v2/top-headlines", {
+      params: { q: query, sources: "the-times-of-india", language: "en", pageSize: 3, apiKey: config.newsApiKey },
       timeout: 6000,
     });
+
+    if (!res.data.articles || res.data.articles.length === 0) {
+      res = await axios.get("https://newsapi.org/v2/everything", {
+        params: { q: query, sources: "the-times-of-india", language: "en", sortBy: "publishedAt", pageSize: 3, apiKey: config.newsApiKey },
+        timeout: 6000,
+      });
+    }
+
     return (res.data.articles || []).map((a) => ({
       title: a.title || "No title",
       source: "Times of India",
@@ -91,6 +95,7 @@ const fetchGNews = async (query) => {
         q: query,
         lang: "en",
         max: 3,
+        sortby: "publishedAt",
         token: config.gnewsApiKey,
       },
       timeout: 6000,
